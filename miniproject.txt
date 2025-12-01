@@ -1,0 +1,53 @@
+----------------
+ASSIGNMENT
+----------------
+
+You are hired as junior developers to build a simple appointment system for a small hospital for example: 
+
+The hospital wants:
+
+    Patients to create accounts
+    Patients to log in and book an appointment
+    Doctors to be chosen from a dropdown
+    Appointments stored in the database
+    A page where patients can see their own appointments
+    Sessions to maintain login
+
+----------------
+DATABASE CREATION
+----------------
+
+CREATE DATABASE hospital_db;
+USE hospital_db;
+
+----------------
+TABLE CREATION
+----------------
+
+CREATE TABLE patients (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE doctors (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL
+);
+
+INSERT INTO doctors (name) VALUES
+('Dr. Smith'),
+('Dr. Johnson'),
+('Dr. Lee');
+
+CREATE TABLE appointments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  patient_id INT NOT NULL,
+  doctor_id INT NOT NULL,
+  appointment_datetime DATETIME NOT NULL,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (patient_id) REFERENCES patients(id),
+  FOREIGN KEY (doctor_id) REFERENCES doctors(id)
+);
+
