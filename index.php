@@ -1,31 +1,33 @@
 <?php
+// start session, load database
 session_start();
 require 'config.php';
-
 $message = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+// handles login form submission
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
 
-    if ($username !== '' && $password !== '') {
-        $stmt = $conn->prepare("SELECT id, password_hash FROM patients WHERE username = ?");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $stmt->bind_result($patient_id, $password_hash);
+    // look up patient by username
+    $sql = "SELECT id, password_hash FROM patients WHERE username='$username'";
+    $result = $conn->query($sql);
 
-        if ($stmt->fetch() && password_verify($password, $password_hash)) {
-            $_SESSION['patient_id'] = $patient_id;
+    if ($result && $result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+
+        // verify credentials
+        if (password_verify($password, $row['password_hash'])) {
+            // store user info in session and go to dashboard
+            $_SESSION['patient_id'] = $row['id'];
             $_SESSION['username'] = $username;
-            header('Location: dashboard.php');
+            header("Location: dashboard.php");
             exit();
         } else {
-            $message = 'Invalid username or password.';
+            $message = "Invalid password.";
         }
-
-        $stmt->close();
     } else {
-        $message = 'Please enter a username and password.';
+        $message = "No user found.";
     }
 }
 ?>

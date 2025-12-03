@@ -1,27 +1,28 @@
 <?php
+// start session, load database
 session_start();
 require 'config.php';
 
+// redirect if not logged in
 if (!isset($_SESSION['patient_id'])) {
     echo "You are not logged in.";
+    header("Location: index.php");
     exit();
 }
 
 $patient_id = $_SESSION['patient_id'];
 
+// get user appointment info
 $sql = "SELECT a.id,
                a.appointment_datetime,
                a.notes,
                d.name AS doctor_name
         FROM appointments a
         JOIN doctors d ON a.doctor_id = d.id
-        WHERE a.patient_id = ?
+        WHERE a.patient_id = '$patient_id'
         ORDER BY a.appointment_datetime DESC";
 
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $patient_id);
-$stmt->execute();
-$result = $stmt->get_result();
+$result = $conn->query($sql);
 ?>
 <!DOCTYPE html>
 <html>

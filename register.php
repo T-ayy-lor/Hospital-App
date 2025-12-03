@@ -1,30 +1,21 @@
 <?php
+// start session, load database
 session_start();
 require 'config.php';
-
 $message = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+// handles registration form submission
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = $_POST['username'];
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    if ($username !== '' && $password !== '') {
-        $hash = password_hash($password, PASSWORD_DEFAULT);
-
-        $stmt = $conn->prepare(
-            "INSERT INTO patients (username, password_hash) VALUES (?, ?)"
-        );
-        $stmt->bind_param("ss", $username, $hash);
-
-        if ($stmt->execute()) {
-            $message = 'Account created. You can now log in.';
-        } else {
-            $message = 'Error: username may already exist.';
-        }
-
-        $stmt->close();
+    // insert new patient into the database
+    $sql = "INSERT INTO patients (username, password_hash) VALUES ('$username', '$password')";
+    
+    if ($conn->query($sql) === TRUE) {
+        $message = "Account created. You can now log in.";
     } else {
-        $message = 'Please fill in all fields.';
+        $message = "Error: username may already exist.";
     }
 }
 ?>

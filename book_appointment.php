@@ -1,16 +1,19 @@
 <?php
+// start session, load database
 session_start();
 require 'config.php';
 
+// redirect if not logged in
 if (!isset($_SESSION['patient_id'])) {
     echo "You are not logged in.";
+    header("Location: index.php");
     exit();
 }
 
 $patient_id = $_SESSION['patient_id'];
 $message = '';
 
-// allowed 30-minute time slots from 8:00 to 4:30 (covers 8:00–5:00 workday)
+// 30-minute appointment time slots from 8:00 to 4:30
 $time_slots = [
     '08:00:00' => '8:00 AM',
     '08:30:00' => '8:30 AM',
@@ -29,57 +32,41 @@ $time_slots = [
     '15:00:00' => '3:00 PM',
     '15:30:00' => '3:30 PM',
     '16:00:00' => '4:00 PM',
-    '16:30:00' => '4:30 PM', // last slot: 4:30–5:00
+    '16:30:00' => '4:30 PM', 
 ];
 
-// handle form submit
+// handle appointment booking form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $doctor_id = intval($_POST['doctor_id'] ?? 0);
-    $date      = trim($_POST['appointment_date'] ?? '');
+    $doctor_id = $_POST['doctor_id'] ?? '';
+    $date      = $_POST['appointment_date'] ?? '';
     $time      = $_POST['appointment_time'] ?? '';
     $notes     = $_POST['notes'] ?? '';
 
-    // validate inputs
+    // validation: require doctor, date, and time
     if ($doctor_id <= 0 || $date === '' || $time === '') {
         $message = 'Please choose a doctor, date, and time.';
-    } elseif (!isset($time_slots[$time])) {
-        // time not in allowed set (e.g., tampering)
-        $message = 'Invalid appointment time selected.';
     } else {
         // build full datetime: "YYYY-MM-DD HH:MM:SS"
         $datetime = $date . ' ' . $time;
 
-        // check for overlapping appointment with same doctor (30-minute slots)
-        // existing slot: [appointment_datetime, appointment_datetime + 30min)
-        // requested slot: [$datetime, $datetime + 30min)
-        $check = $conn->prepare(
-            "SELECT COUNT(*) FROM appointments
-             WHERE doctor_id = ?
-               AND appointment_datetime < DATE_ADD(?, INTERVAL 30 MINUTE)
-               AND DATE_ADD(appointment_datetime, INTERVAL 30 MINUTE) > ?"
-        );
-        $check->bind_param("iss", $doctor_id, $datetime, $datetime);
-        $check->execute();
-        $check->bind_result($count);
-        $check->fetch();
-        $check->close();
+        // check if this doctor already has an appointment at this time
+        $check_sql = "SELECT id FROM appointments 
+                      WHERE doctor_id = '$doctor_id' 
+                      AND appointment_datetime = '$datetime'";
+        $check_result = $conn->query($check_sql);
 
-        if ($count > 0) {
-            $message = 'This doctor already has an appointment within that 30-minute time slot.';
+        if ($check_result && $check_result->num_rows > 0) {
+            $message = 'That time is already booked for this doctor.';
         } else {
-            $stmt = $conn->prepare(
-                "INSERT INTO appointments (patient_id, doctor_id, appointment_datetime, notes)
-                 VALUES (?, ?, ?, ?)"
-            );
-            $stmt->bind_param("iiss", $patient_id, $doctor_id, $datetime, $notes);
+            // insert appointment into the database
+            $sql = "INSERT INTO appointments (patient_id, doctor_id, appointment_datetime, notes)
+                    VALUES ('$patient_id', '$doctor_id', '$datetime', '$notes')";
 
-            if ($stmt->execute()) {
+            if ($conn->query($sql) === TRUE) {
                 $message = 'Appointment booked successfully.';
             } else {
                 $message = 'Error booking appointment.';
             }
-
-            $stmt->close();
         }
     }
 }

@@ -1,13 +1,18 @@
 <?php
+// start session
 session_start();
 
+// redirect if not logged in
 if (!isset($_SESSION['patient_id'])) {
     echo "You are not logged in.";
+    header("Location: index.php");
     exit();
 }
 
+// get username for display
 $username = $_SESSION['username'] ?? 'Patient';
 ?>
+
 <!DOCTYPE html>
 <html>
 <head>
