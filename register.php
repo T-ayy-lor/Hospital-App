@@ -11,13 +11,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // insert new patient into the database
     $sql = "INSERT INTO patients (username, password_hash) VALUES ('$username', '$password')";
-    
+
     if ($conn->query($sql) === TRUE) {
         $message = "Account created. You can now log in.";
+        header("Location: index.php");
     } else {
         $message = "Error: username may already exist.";
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html>
